@@ -1,0 +1,50 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["omitApi"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("SUPABASE_URI")
+}
+
+model users {
+  id                   String                @id @default(uuid())
+  createdAt            DateTime              @default(now())
+  firstName            String
+  lastName             String
+  email                String                @unique
+  password             String
+  avatar               String?
+  updatedAt            DateTime              @updatedAt
+  connections_sent     connection_requests[] @relation("ConnectionsSent")
+  connections_received connection_requests[] @relation("ConnectionsReceived")
+  connections_as_user1 connections[]         @relation("ConnectionsAsUser1")
+  connections_as_user2 connections[]         @relation("ConnectionsAsUser2")
+}
+
+model connection_requests {
+  id          String             @id @default(uuid())
+  createdAt   DateTime           @default(now())
+  sender_id   String
+  sender      users              @relation("ConnectionsSent", fields: [sender_id], references: [id], onUpdate: Cascade)
+  receiver_id String
+  receiver    users              @relation("ConnectionsReceived", fields: [receiver_id], references: [id], onUpdate: Cascade)
+  status      CONNECTION_STATUS? @default(PENDING)
+  updatedAt   DateTime           @updatedAt
+}
+
+model connections {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  user1_id  String
+  user1     users    @relation("ConnectionsAsUser1", fields: [user1_id], references: [id], onUpdate: Cascade)
+  user2_id  String
+  user2     users    @relation("ConnectionsAsUser2", fields: [user2_id], references: [id], onUpdate: Cascade)
+}
+
+enum CONNECTION_STATUS {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
