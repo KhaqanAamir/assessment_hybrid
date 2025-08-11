@@ -10,6 +10,7 @@ import {
   Put,
   Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { ConnectionRequestsService } from './connection-requests.service';
@@ -23,9 +24,20 @@ export class ConnectionRequestsController {
     private readonly connectionRequestsService: ConnectionRequestsService,
   ) {}
 
+  /**
+   * @deprecated This endpoint is no longer in used.
+   * Will be removed shortly.
+   * Please use getUserStats function instead of this
+   */
   @Get('sent')
   @UseGuards(UserGuard)
-  async getSentRequests(@Req() req, @Query() query: PaginationDto) {
+  async getSentRequests(@Req() req, @Res() res, @Query() query: PaginationDto) {
+    res.setHeader('Deprecation', 'true');
+    res.setHeader(
+      'Warning',
+      '299 - "This API is deprecated and will be removed soon."',
+    );
+    console.warn('⚠️ /suggestions endpoint is deprecated.');
     const skip =
       query.page_no && query.page_size
         ? (+query.page_no - 1) * +query.page_size
@@ -37,9 +49,24 @@ export class ConnectionRequestsController {
     });
   }
 
+  /**
+   * @deprecated This endpoint is no longer in used.
+   * Will be removed shortly.
+   * Please use getUserStats function instead of this
+   */
   @Get('received')
   @UseGuards(UserGuard)
-  async getReceivedRequests(@Req() req, @Query() query: PaginationDto) {
+  async getReceivedRequests(
+    @Req() req,
+    @Res() res,
+    @Query() query: PaginationDto,
+  ) {
+    res.setHeader('Deprecation', 'true');
+    res.setHeader(
+      'Warning',
+      '299 - "This API is deprecated and will be removed soon."',
+    );
+    console.warn('⚠️ /suggestions endpoint is deprecated.');
     const skip =
       query.page_no && query.page_size
         ? (+query.page_no - 1) * +query.page_size
@@ -86,9 +113,20 @@ export class ConnectionRequestsController {
     );
   }
 
+  /**
+   * @deprecated This endpoint is no longer in used.
+   * Will be removed shortly.
+   * Please use getUserStats function instead of this
+   */
   @Get('all')
   @UseGuards(UserGuard)
-  async getAllRequests(@Req() req) {
+  async getAllRequests(@Req() req, @Res() res) {
+    res.setHeader('Deprecation', 'true');
+    res.setHeader(
+      'Warning',
+      '299 - "This API is deprecated and will be removed soon."',
+    );
+    console.warn('⚠️ /suggestions endpoint is deprecated.');
     return await this.connectionRequestsService.getAllRequests(req.user.id);
   }
 }

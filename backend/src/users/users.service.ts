@@ -121,269 +121,135 @@ export class UsersService {
     }
   }
 
-  // async getUserStats(userId: string): Promise<CustomResponse> {
-  //   try {
-  //     const allUsers = await this.prisma.users.findMany({
-  //       where: { id: { not: userId } },
-  //     });
-
-  //     let requestsSent = await this.prisma.connection_requests.findMany({
-  //       where: { sender_id: userId, status: CONNECTION_STATUS.PENDING },
-  //       include: { receiver: true },
-  //     });
-
-  //     let requestsReceived = await this.prisma.connection_requests.findMany({
-  //       where: { receiver_id: userId, status: CONNECTION_STATUS.PENDING },
-  //       include: { sender: true },
-  //     });
-
-  //     const connectedUsersQuery = await this.prisma.connections.findMany({
-  //       where: {
-  //         OR: [{ user1_id: userId }, { user2_id: userId }],
-  //       },
-  //     });
-
-  //     const transformedConnectedCustomers = connectedUsersQuery.map(
-  //       (connection) => {
-  //         return connection.user1_id === userId
-  //           ? connection.user2_id
-  //           : connection.user1_id;
-  //       },
-  //     );
-
-  //     const sentUserIds = new Set(requestsSent.map((r) => r.receiver_id));
-  //     const receivedUserIds = new Set(requestsReceived.map((r) => r.sender_id));
-  //     const connectedUserIds = new Set(transformedConnectedCustomers);
-
-  //     // const sentUsers = allUsers.filter((user) => sentUserIds.has(user.id));
-  //     // const receivedUsers = allUsers.filter((user) =>
-  //     //   receivedUserIds.has(user.id),
-  //     // );
-
-  //     requestsSent = await Promise.all(
-  //       requestsSent.map(async (request) => {
-  //         const [currentUserConnections, otherUserConnections] =
-  //           await Promise.all([
-  //             this.getConnectedUserIds(userId),
-  //             this.getConnectedUserIds(request.receiver.id),
-  //           ]);
-
-  //         const mutualIds = currentUserConnections.filter((id) =>
-  //           otherUserConnections.includes(id),
-  //         );
-
-  //         const [mutualUsers, total] = await this.prisma.$transaction([
-  //           this.prisma.users.findMany({
-  //             where: { id: { in: mutualIds } },
-  //           }),
-  //           this.prisma.users.count({
-  //             where: { id: { in: mutualIds } },
-  //           }),
-  //         ]);
-
-  //         return {
-  //           ...request,
-  //           mutualUsers: total,
-  //         };
-  //       }),
-  //     );
-
-  //     requestsReceived = await Promise.all(
-  //       requestsReceived.map(async (request) => {
-  //         const [currentUserConnections, otherUserConnections] =
-  //           await Promise.all([
-  //             this.getConnectedUserIds(userId),
-  //             this.getConnectedUserIds(request.sender.id),
-  //           ]);
-
-  //         const mutualIds = currentUserConnections.filter((id) =>
-  //           otherUserConnections.includes(id),
-  //         );
-
-  //         const [mutualUsers, total] = await this.prisma.$transaction([
-  //           this.prisma.users.findMany({
-  //             where: { id: { in: mutualIds } },
-  //           }),
-  //           this.prisma.users.count({
-  //             where: { id: { in: mutualIds } },
-  //           }),
-  //         ]);
-
-  //         return {
-  //           ...request,
-  //           mutualUsers: total,
-  //         };
-  //       }),
-  //     );
-
-  //     let unconnectedUsers = allUsers.filter(
-  //       (user) =>
-  //         !sentUserIds.has(user.id) &&
-  //         !receivedUserIds.has(user.id) &&
-  //         !connectedUserIds.has(user.id),
-  //     );
-
-  //     unconnectedUsers = await Promise.all(
-  //       unconnectedUsers.map(async (user) => {
-  //         const [currentUserConnections, otherUserConnections] =
-  //           await Promise.all([
-  //             this.getConnectedUserIds(userId),
-  //             this.getConnectedUserIds(user.id),
-  //           ]);
-
-  //         const mutualIds = currentUserConnections.filter((id) =>
-  //           otherUserConnections.includes(id),
-  //         );
-
-  //         const [mutualUsers, total] = await this.prisma.$transaction([
-  //           this.prisma.users.findMany({
-  //             where: { id: { in: mutualIds } },
-  //           }),
-  //           this.prisma.users.count({
-  //             where: { id: { in: mutualIds } },
-  //           }),
-  //         ]);
-
-  //         return {
-  //           ...user,
-  //           mutualUsers: total,
-  //         };
-  //       }),
-  //     );
-
-  //     return {
-  //       error: false,
-  //       msg: 'User stats fetched Successfully',
-  //       data: {
-  //         sentRequests: requestsSent,
-  //         receivedRequests: requestsReceived,
-  //         unconnectedUsers: unconnectedUsers,
-  //       },
-  //       status: HttpStatus.OK,
-  //     };
-  //   } catch (e) {
-  //     return {
-  //       error: true,
-  //       msg: `Internal server error occurred: ${e.message}`,
-  //     };
-  //   }
-  // }
-
-  private async getMutualUserCount(
-    userId: string,
-    otherUserId: string,
-  ): Promise<number> {
-    const [currentUserConnections, otherUserConnections] = await Promise.all([
-      this.getConnectedUserIds(userId),
-      this.getConnectedUserIds(otherUserId),
-    ]);
-
-    const mutualIds = currentUserConnections.filter((id) =>
-      otherUserConnections.includes(id),
-    );
-
-    return mutualIds.length;
-  }
-
-  private async getConnectedUserIds(userId: string): Promise<string[]> {
-    const connections = await this.prisma.connections.findMany({
-      where: {
-        OR: [{ user1_id: userId }, { user2_id: userId }],
-      },
-      select: {
-        user1_id: true,
-        user2_id: true,
-      },
-    });
-
-    return connections.map((c) =>
-      c.user1_id === userId ? c.user2_id : c.user1_id,
-    );
-  }
-
-  async getUserStats2(userId: string): Promise<CustomResponse> {
+  async getUserStats(userId: string) {
     try {
-      const allUsers = await this.prisma.users.findMany({
-        where: { id: { not: userId } },
-      });
+      // Single complex query to get all data at once
+      const result: any = await this.prisma.$queryRaw`
+      WITH user_connections AS (
+        SELECT
+          CASE
+            WHEN user1_id = ${userId} THEN user2_id
+            ELSE user1_id
+          END as connected_user_id
+        FROM connections
+        WHERE user1_id = ${userId} OR user2_id = ${userId}
+      ),
+      other_user_connections AS (
+        SELECT
+          u.id as user_id,
+          CASE
+            WHEN c.user1_id = u.id THEN c.user2_id
+            ELSE c.user1_id
+          END as connected_user_id
+        FROM users u
+        JOIN connections c ON (c.user1_id = u.id OR c.user2_id = u.id)
+        WHERE u.id != ${userId}
+      ),
+      mutual_counts AS (
+        SELECT
+          ouc.user_id,
+          COUNT(DISTINCT ouc.connected_user_id) as mutual_count
+        FROM other_user_connections ouc
+        INNER JOIN user_connections uc ON ouc.connected_user_id = uc.connected_user_id
+        GROUP BY ouc.user_id
+      )
+      SELECT
+        u.id,
+        u."firstName",
+        u."lastName",
+        u.email,
+        u.avatar,
+        u."createdAt",
+        u."updatedAt",
+        COALESCE(mc.mutual_count, 0) as mutualUsers,
+        CASE
+          WHEN uc.connected_user_id IS NOT NULL THEN 'CONNECTED'
+          WHEN cr_sent.id IS NOT NULL THEN 'REQUEST_SENT'
+          WHEN cr_received.id IS NOT NULL THEN 'REQUEST_RECEIVED'
+          ELSE 'UNCONNECTED'
+        END as relationship_status,
+        cr_sent.id as sent_request_id,
+        cr_sent."createdAt" as sent_request_date,
+        cr_received.id as received_request_id,
+        cr_received."createdAt" as received_request_date
+      FROM users u
+      LEFT JOIN user_connections uc ON u.id = uc.connected_user_id
+      LEFT JOIN connection_requests cr_sent ON (
+        cr_sent.sender_id = ${userId} AND
+        cr_sent.receiver_id = u.id AND
+        cr_sent.status = 'PENDING'
+      )
+      LEFT JOIN connection_requests cr_received ON (
+        cr_received.receiver_id = ${userId} AND
+        cr_received.sender_id = u.id AND
+        cr_received.status = 'PENDING'
+      )
+      LEFT JOIN mutual_counts mc ON u.id = mc.user_id
+      WHERE u.id != ${userId}
+      ORDER BY u."firstName", u."lastName"
+    `;
 
-      let requestsSent = await this.prisma.connection_requests.findMany({
-        where: { sender_id: userId, status: CONNECTION_STATUS.PENDING },
-        include: { receiver: true },
-      });
+      // Process results without loops
+      const sentRequests = result
+        .filter((r) => r.relationship_status === 'REQUEST_SENT')
+        .map((r) => ({
+          id: r.sent_request_id,
+          sender_id: userId,
+          receiver_id: r.id,
+          status: 'PENDING',
+          createdAt: r.sent_request_date,
+          receiver: {
+            id: r.id,
+            firstName: r.firstName,
+            lastName: r.lastName,
+            email: r.email,
+            avatar: r.avatar,
+            createdAt: r.createdAt,
+            updatedAt: r.updatedAt,
+          },
+          mutualUsers: r.mutualUsers,
+        }));
 
-      let requestsReceived = await this.prisma.connection_requests.findMany({
-        where: { receiver_id: userId, status: CONNECTION_STATUS.PENDING },
-        include: { sender: true },
-      });
+      const receivedRequests = result
+        .filter((r) => r.relationship_status === 'REQUEST_RECEIVED')
+        .map((r) => ({
+          id: r.received_request_id,
+          sender_id: r.id,
+          receiver_id: userId,
+          status: 'PENDING',
+          createdAt: r.received_request_date,
+          sender: {
+            id: r.id,
+            firstName: r.firstName,
+            lastName: r.lastName,
+            email: r.email,
+            avatar: r.avatar,
+            createdAt: r.createdAt,
+            updatedAt: r.updatedAt,
+          },
+          mutualUsers: r.mutualUsers,
+        }));
 
-      const connectedUsersQuery = await this.prisma.connections.findMany({
-        where: {
-          OR: [{ user1_id: userId }, { user2_id: userId }],
-        },
-      });
-
-      const transformedConnectedCustomers = connectedUsersQuery.map(
-        (connection) => {
-          return connection.user1_id === userId
-            ? connection.user2_id
-            : connection.user1_id;
-        },
-      );
-
-      requestsSent = await Promise.all(
-        requestsSent.map(async (request) => {
-          const mutualCount = await this.getMutualUserCount(
-            userId,
-            request.receiver_id,
-          );
-
-          return {
-            ...request,
-            mutualUsers: mutualCount,
-          };
-        }),
-      );
-
-      requestsReceived = await Promise.all(
-        requestsReceived.map(async (request) => {
-          const mutualCount = await this.getMutualUserCount(
-            userId,
-            request.sender_id,
-          );
-
-          return {
-            ...request,
-            mutualUsers: mutualCount,
-          };
-        }),
-      );
-
-      let unconnectedUsers = allUsers.filter(
-        (user) =>
-          !requestsSent.some((item) => item.receiver.id === user.id) &&
-          !requestsReceived.some((item) => item.sender.id === user.id) &&
-          !transformedConnectedCustomers.some((item) => item === user.id),
-      );
-
-      unconnectedUsers = await Promise.all(
-        unconnectedUsers.map(async (user) => {
-          const mutualCount = await this.getMutualUserCount(userId, user.id);
-
-          return {
-            ...user,
-            mutualUsers: mutualCount,
-          };
-        }),
-      );
+      const unconnectedUsers = result
+        .filter((r) => r.relationship_status === 'UNCONNECTED')
+        .map((r) => ({
+          id: r.id,
+          firstName: r.firstName,
+          lastName: r.lastName,
+          email: r.email,
+          avatar: r.avatar,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt,
+          mutualUsers: r.mutualUsers,
+        }));
 
       return {
         error: false,
         msg: 'User stats fetched Successfully',
         data: {
-          sentRequests: requestsSent,
-          receivedRequests: requestsReceived,
-          unconnectedUsers: unconnectedUsers,
+          sentRequests,
+          receivedRequests,
+          unconnectedUsers,
         },
         status: HttpStatus.OK,
       };
